@@ -101,6 +101,8 @@ app.post('/register',async (req,res)=>{
             await insertData(dbName,collectionName,userData);
             res.redirect('/login');
             console.log('new user added successfully ..........')
+        } else{
+            res.send('user already exist')
         }
     } finally{
         await close();
@@ -113,15 +115,22 @@ app.get('/login',(req,res)=>{
 
 app.post('/login', async (req,res)=>{
     const clientDetails = {username,password} = req.body;
+    let foundUser = false;
 
     try{
         await connect();
-        await insertData(dbName,collectionName,clientDetails).then(()=>{
-            console.log('Successfully submitted .........')
-        })
+        const findUser = await users(dbName,collectionName,{});
+        findUser.forEach(user =>{
+            if((user.email === clientDetails.username) && (user.password === clientDetails.password)){
+                foundUser = true;
+                res.send(`Welcome back ${user.fname}`);
+                console.log('found user')
+            } else{
+                res.status(404)
+            }
+        });
     } finally {
         await close();
-        res.redirect('/');
     }
 })
 
