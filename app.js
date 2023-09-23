@@ -3,15 +3,28 @@ const bodyparser = require('body-parser');
 const ejs = require('ejs');
 const dotenv = require('dotenv').config();
 const mongoose = require('mongoose');
+require ('./passport');
 const { MongoClient, ServerApiVersion } = require('mongodb');
+const session = require('express-session');
+const passport = require('passport');
 
 
 const app = express();
 app.use(express.static('public'));
-app.use(express.static(__dirname))
+app.use(express.static(__dirname));
 app.use(bodyparser.urlencoded({extended:true}));
+app.use(session({
+    secret: 'keyboard cat',
+    resave: false,
+    saveUninitialized: true,
+    cookie: { secure: false }
+}))
+
+app.use(passport.initialize())
+app.use(passport.session());
 
 app.set('view engine','ejs');
+
 
 // Database setup for MongoDB
 const uri = process.env.URI;
@@ -25,6 +38,15 @@ const client = new MongoClient(uri,{
         deprecationErrors:true,
     },
 });
+
+//middleware function for authentication
+function isLoggedIn(req,res,next) {
+    if (req.user) {
+        next();
+    } else{
+        res.sendStatus(404);
+    }
+}
 
 // Database Definition and Manipulation Functions
 async function connect(){
@@ -47,22 +69,114 @@ async function insertData(dbName, collectionName, data){
     return result;
 }
 
-app.get('/',(req,res)=>{
-    res.render('indexx');
+async function users(dbName, collectionName, filter) {
+  const db = client.db(dbName);
+  const collection = db.collection(collectionName);
+  const documents = await collection.find(filter).toArray();
+  return documents;
+}
+
+app.get('/register',(req,res)=>{
+    res.render('page2');
 })
 
-app.post('/', async (req,res)=>{
-    const clientDetails = {username,password} = req.body;
+app.post('/register',async (req,res)=>{
+    // const gender = req.body.gender;
+    const userData = {fname,lname,gender,phone,email,password} = req.body;
+    console.log(userData);
+    var foundUser = false;
 
     try{
         await connect();
-        await insertData(dbName,collectionName,clientDetails).then(()=>{
-            console.log('Successfully submitted .........')
-        })
+
+        const findUser = await users(dbName,collectionName,{});
+        findUser.forEach(user =>{
+            if(user.email === userData.email){
+                foundUser = true;
+                console.log('found user')
+            }
+        });
+
+        if (!foundUser) {
+            await insertData(dbName,collectionName,userData);
+            res.redirect('/login');
+            console.log('new user added successfully ..........')
+        } else{
+            res.send('user already exist')
+        }
+    } finally{
+        await close();
+    }
+})
+
+app.get('/login',(req,res)=>{
+    res.render('indexx');
+})
+
+app.post('/login', async (req,res)=>{
+    const clientDetails = {username,password} = req.body;
+    let foundUser = false;
+
+    try{
+        await connect();
+        const findUser = await users(dbName,collectionName,{});
+        findUser.forEach(user =>{
+            if((user.email === clientDetails.username) && (user.password === clientDetails.password)){
+                foundUser = true;
+                res.send(`Welcome back ${user.fname}`);
+                console.log('found user')
+            } else{
+                res.status(404)
+            }
+        });
     } finally {
         await close();
-        res.redirect('/');
     }
+})
+
+//User authentication
+
+app.get('/auth/google',
+  passport.authenticate('google', { scope:
+      [ 'email', 'profile' ] }
+));
+
+app.get( '/auth/google/callback',
+    passport.authenticate( 'google', {
+        successRedirect: '/auth/google/success',
+        failureRedirect: '/auth/google/failure'
+}));
+
+app.get('/auth/google/success',isLoggedIn, async (req,res)=>{
+    let currentUser = {name,displayName,email} = req.user;
+    var foundUser = false;
+
+    try{
+        await connect();
+
+        const findUser = await users(dbName,collectionName,{});
+        findUser.forEach(user =>{
+            if(user.email === currentUser.email){
+                foundUser = true;
+                console.log('found user')
+            }
+        });
+
+        if (!foundUser) {
+            await insertData(dbName,collectionName,currentUser);
+            console.log('new user added successfully ..........')
+        }
+    } finally{
+        res.send(`welcome ${currentUser.displayName}`)
+        await close();
+    }
+    
+           
+    })
+    
+
+app.get('/auth/google/failure',(req,res)=>{
+    res.send('its not working')
 })
 
 app.listen(4000,()=>{

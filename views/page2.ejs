@@ -1,0 +1,64 @@
+<html>
+<head>
+<title>Samsax Musicals.com</title>
+      <link rel="stylesheet" type="text/css" href="public/css/style1.css">
+<body>
+      <div class="loginbox">
+      <img src="images/avatar.png" class="avatar">
+      <h1>Signup here</h1>
+    <form action="/register" method="post" id="registrationForm">
+	 <p>First Name</p>
+	 <input type="text" name="fname" placeholder="Enter first name">
+	 <p>Last Name</p>
+	 <input type="text" name="lname" placeholder="Enter last name">
+	 <p>Gender :
+	<select name="gender">
+	   <option value="none">none</option>
+	   <option value="male">male</option>
+	   <option value="female">female</option>
+	   </select>
+	  <p>phone no</p>
+	  <input type="text" name="phone" placeholder="Enter phone no">
+
+	 <p>Email</p>
+	 <input type="email" name="email" placeholder="Enter Email">
+	 <p>Password</p>
+	 <input type="password" name="password" id="password" placeholder="Enter password">
+	 <p id="passwordMismatch" style="display: none;">password not matching</p>
+	 <p>Confirm password</p>
+	 <input type="password" name="confirm-password" id="confirmPassword" placeholder="Enter password">
+	 <input type="submit" name="" value="Register">
+        
+   </form>
+  
+  </div>
+
+  <script>
+	const passwordInput = document.getElementById('password');
+	const confirmPasswordInput = document.getElementById('confirmPassword');
+	const passwordMismatchMessage = document.getElementById('passwordMismatch');
+	const registrationForm = document.getElementById('registrationForm');
+  
+	function checkPasswordMatch() {
+	  const password = passwordInput.value;
+	  const confirmPassword = confirmPasswordInput.value;
+  
+	  if (password !== confirmPassword) {
+		passwordMismatchMessage.style.display = 'block';
+		return false;
+	  } else {
+		passwordMismatchMessage.style.display = 'none';
+		return true;
+	  }
+	}
+  
+	registrationForm.addEventListener('submit', function (e) {
+	  if (!checkPasswordMatch()) {
+		e.preventDefault(); // Prevent form submission if passwords don't match
+	  }
+	});
+  </script>
+  
+</body>
+</head>
+</html>
